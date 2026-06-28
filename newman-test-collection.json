@@ -1,0 +1,424 @@
+{
+  "info": {
+    "name": "Product Management API - Newman Test Run",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl",    "value": "http://localhost:3000/api" },
+    { "key": "token",      "value": "" },
+    { "key": "userId",     "value": "" },
+    { "key": "categoryId", "value": "" },
+    { "key": "productId",  "value": "" },
+    { "key": "bulkJobId",  "value": "" },
+    { "key": "reportJobId","value": "" }
+  ],
+  "item": [
+    {
+      "name": "01 - Login",
+      "event": [{
+        "listen": "test",
+        "script": { "exec": [
+          "pm.test('Status 201', () => pm.response.to.have.status(201));",
+          "const b = pm.response.json();",
+          "pm.test('Has accessToken', () => pm.expect(b.data.accessToken).to.be.a('string'));",
+          "pm.collectionVariables.set('token', b.data.accessToken);"
+        ]}
+      }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\"email\":\"admin@example.com\",\"password\":\"admin123\"}" },
+        "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth","login"] }
+      }
+    },
+    {
+      "name": "02 - Login with wrong password (expect 401)",
+      "event": [{
+        "listen": "test",
+        "script": { "exec": [
+          "pm.test('Status 401 for wrong password', () => pm.response.to.have.status(401));"
+        ]}
+      }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\"email\":\"admin@example.com\",\"password\":\"wrongpassword\"}" },
+        "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth","login"] }
+      }
+    },
+    {
+      "name": "03 - Get Users (no token → 401)",
+      "event": [{
+        "listen": "test",
+        "script": { "exec": [
+          "pm.test('Status 401 without token', () => pm.response.to.have.status(401));"
+        ]}
+      }],
+      "request": {
+        "method": "GET",
+        "url": { "raw": "{{baseUrl}}/users", "host": ["{{baseUrl}}"], "path": ["users"] }
+      }
+    },
+    {
+      "name": "04 - Create User",
+      "event": [{
+        "listen": "test",
+        "script": { "exec": [
+          "pm.test('Status 201', () => pm.response.to.have.status(201));",
+          "const b = pm.response.json();",
+          "pm.test('Has user id', () => pm.expect(b.data.id).to.be.a('string'));",
+          "pm.test('Password not in response', () => pm.expect(b.data).to.not.have.property('password'));",
+          "pm.collectionVariables.set('userId', b.data.id);"
+        ]}
+      }],
+      "request": {
+        "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}" }] },
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\"email\":\"newman-test@example.com\",\"password\":\"test123\"}" },
+        "url": { "raw": "{{baseUrl}}/users", "host": ["{{baseUrl}}"], "path": ["users"] }
+      }
+    },
+    {
+      "name": "05 - Get All Users",
+      "event": [{
+        "listen": "test",
+        "script": { "exec": [
+          "pm.test('Status 200', () => pm.response.to.have.status(200));",
+          "const b = pm.response.json();",
+          "pm.test('Returns array', () => pm.expect(b.data).to.be.an('array'));",
+          "pm.test('At least 1 user', () => pm.expect(b.data.length).to.be.above(0));"
+        ]}
+      }],
+      "request": {
+        "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}" }] },
+        "method": "GET",
+        "url": { "raw": "{{baseUrl}}/users", "host": ["{{baseUrl}}"], "path": ["users"] }
+      }
+    },
+    {
+      "name": "06 - Get User by ID",
+      "event": [{
+        "listen": "test",
+        "script": { "exec": [
+          "pm.test('Status 200', () => pm.response.to.have.status(200));",
+          "const b = pm.response.json();",
+          "pm.test('Correct user returned', () => pm.expect(b.data.id).to.equal(pm.collectionVariables.get('userId')));"
+        ]}
+      }],
+      "request": {
+        "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}" }] },
+        "method": "GET",
+        "url": { "raw": "{{baseUrl}}/users/{{userId}}", "host": ["{{baseUrl}}"], "path": ["users","{{userId}}"] }
+      }
+    },
+    {
+      "name": "07 - Update User",
+      "event": [{
+        "listen": "test",
+        "script": { "exec": [
+          "pm.test('Status 200', () => pm.response.to.have.status(200));",
+          "const b = pm.response.json();",
+          "pm.test('Email updated', () => pm.expect(b.data.email).to.equal('newman-updated@example.com'));"
+        ]}
+      }],
+      "request": {
+        "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}" }] },
+        "method": "PUT",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\"email\":\"newman-updated@example.com\"}" },
+        "url": { "raw": "{{baseUrl}}/users/{{userId}}", "host": ["{{baseUrl}}"], "path": ["users","{{userId}}"] }
+      }
+    },
+    {
+      "name": "08 - Create Category",
+      "event": [{
+        "listen": "test",
+        "script": { "exec": [
+          "pm.test('Status 201', () => pm.response.to.have.status(201));",
+          "const b = pm.response.json();",
+          "pm.test('Has uniqueId', () => pm.expect(b.data.uniqueId).to.match(/^CAT-/));",
+          "pm.test('createdBy has email', () => pm.expect(b.data.createdBy.email).to.be.a('string'));",
+          "pm.test('updatedBy is null on create', () => pm.expect(b.data.updatedBy).to.be.null);",
+          "pm.collectionVariables.set('categoryId', b.data.id);"
+        ]}
+      }],
+      "request": {
+        "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}" }] },
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\"name\":\"Newman Test Category\"}" },
+        "url": { "raw": "{{baseUrl}}/categories", "host": ["{{baseUrl}}"], "path": ["categories"] }
+      }
+    },
+    {
+      "name": "09 - Get All Categories",
+      "event": [{
+        "listen": "test",
+        "script": { "exec": [
+          "pm.test('Status 200', () => pm.response.to.have.status(200));",
+          "const b = pm.response.json();",
+          "pm.test('Returns array', () => pm.expect(b.data).to.be.an('array'));"
+        ]}
+      }],
+      "request": {
+        "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}" }] },
+        "method": "GET",
+        "url": { "raw": "{{baseUrl}}/categories", "host": ["{{baseUrl}}"], "path": ["categories"] }
+      }
+    },
+    {
+      "name": "10 - Update Category",
+      "event": [{
+        "listen": "test",
+        "script": { "exec": [
+          "pm.test('Status 200', () => pm.response.to.have.status(200));",
+          "const b = pm.response.json();",
+          "pm.test('Name updated', () => pm.expect(b.data.name).to.equal('Newman Test Category Updated'));",
+          "pm.test('updatedBy has email', () => pm.expect(b.data.updatedBy.email).to.be.a('string'));"
+        ]}
+      }],
+      "request": {
+        "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}" }] },
+        "method": "PUT",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\"name\":\"Newman Test Category Updated\"}" },
+        "url": { "raw": "{{baseUrl}}/categories/{{categoryId}}", "host": ["{{baseUrl}}"], "path": ["categories","{{categoryId}}"] }
+      }
+    },
+    {
+      "name": "11 - Create Product (no image)",
+      "event": [{
+        "listen": "test",
+        "script": { "exec": [
+          "pm.test('Status 201', () => pm.response.to.have.status(201));",
+          "const b = pm.response.json();",
+          "pm.test('Has uniqueId', () => pm.expect(b.data.uniqueId).to.match(/^PRD-/));",
+          "pm.test('Category attached', () => pm.expect(b.data.category).to.be.an('object'));",
+          "pm.test('createdBy has email', () => pm.expect(b.data.createdBy.email).to.be.a('string'));",
+          "pm.test('updatedBy is null on create', () => pm.expect(b.data.updatedBy).to.be.null);",
+          "pm.collectionVariables.set('productId', b.data.id);"
+        ]}
+      }],
+      "request": {
+        "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}" }] },
+        "method": "POST",
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            { "key": "name",       "value": "Newman Test Product", "type": "text" },
+            { "key": "price",      "value": "199.99",               "type": "text" },
+            { "key": "categoryId", "value": "{{categoryId}}",       "type": "text" }
+          ]
+        },
+        "url": { "raw": "{{baseUrl}}/products", "host": ["{{baseUrl}}"], "path": ["products"] }
+      }
+    },
+    {
+      "name": "12 - List Products (paginated)",
+      "event": [{
+        "listen": "test",
+        "script": { "exec": [
+          "pm.test('Status 200', () => pm.response.to.have.status(200));",
+          "const b = pm.response.json();",
+          "pm.test('Has items array', () => pm.expect(b.data.items).to.be.an('array'));",
+          "pm.test('Has total count', () => pm.expect(b.data.total).to.be.a('number'));",
+          "pm.test('Has pagination meta', () => { pm.expect(b.data.page).to.equal(1); pm.expect(b.data.limit).to.equal(10); });"
+        ]}
+      }],
+      "request": {
+        "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}" }] },
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/products?page=1&limit=10&sortBy=price&sortOrder=asc",
+          "host": ["{{baseUrl}}"], "path": ["products"],
+          "query": [
+            { "key": "page",      "value": "1" },
+            { "key": "limit",     "value": "10" },
+            { "key": "sortBy",    "value": "price" },
+            { "key": "sortOrder", "value": "asc" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "13 - Search Products",
+      "event": [{
+        "listen": "test",
+        "script": { "exec": [
+          "pm.test('Status 200', () => pm.response.to.have.status(200));",
+          "const b = pm.response.json();",
+          "pm.test('Search returns items', () => pm.expect(b.data.items).to.be.an('array'));"
+        ]}
+      }],
+      "request": {
+        "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}" }] },
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/products?search=Newman",
+          "host": ["{{baseUrl}}"], "path": ["products"],
+          "query": [{ "key": "search", "value": "Newman" }]
+        }
+      }
+    },
+    {
+      "name": "14 - Get Product by ID",
+      "event": [{
+        "listen": "test",
+        "script": { "exec": [
+          "pm.test('Status 200', () => pm.response.to.have.status(200));",
+          "const b = pm.response.json();",
+          "pm.test('Correct product', () => pm.expect(b.data.id).to.equal(pm.collectionVariables.get('productId')));"
+        ]}
+      }],
+      "request": {
+        "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}" }] },
+        "method": "GET",
+        "url": { "raw": "{{baseUrl}}/products/{{productId}}", "host": ["{{baseUrl}}"], "path": ["products","{{productId}}"] }
+      }
+    },
+    {
+      "name": "15 - Update Product",
+      "event": [{
+        "listen": "test",
+        "script": { "exec": [
+          "pm.test('Status 200', () => pm.response.to.have.status(200));",
+          "const b = pm.response.json();",
+          "pm.test('Price updated', () => pm.expect(parseFloat(b.data.price)).to.equal(149.99));",
+          "pm.test('updatedBy has email', () => pm.expect(b.data.updatedBy.email).to.be.a('string'));"
+        ]}
+      }],
+      "request": {
+        "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}" }] },
+        "method": "PUT",
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            { "key": "price", "value": "149.99", "type": "text" }
+          ]
+        },
+        "url": { "raw": "{{baseUrl}}/products/{{productId}}", "host": ["{{baseUrl}}"], "path": ["products","{{productId}}"] }
+      }
+    },
+    {
+      "name": "16 - Bulk Upload CSV",
+      "event": [{
+        "listen": "test",
+        "script": { "exec": [
+          "pm.test('Status 201', () => pm.response.to.have.status(201));",
+          "const b = pm.response.json();",
+          "pm.test('Has jobId', () => pm.expect(b.data.jobId).to.be.a('string'));",
+          "pm.test('Status queued', () => pm.expect(b.data.status).to.equal('queued'));",
+          "pm.test('createdBy has email', () => pm.expect(b.data.createdBy.email).to.be.a('string'));",
+          "pm.collectionVariables.set('bulkJobId', b.data.jobId);"
+        ]}
+      }],
+      "request": {
+        "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}" }] },
+        "method": "POST",
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            { "key": "file", "type": "file", "src": "d:\\Assignment-28-06-2026\\product-management\\test-bulk-upload.csv" }
+          ]
+        },
+        "url": { "raw": "{{baseUrl}}/bulk-upload/products", "host": ["{{baseUrl}}"], "path": ["bulk-upload","products"] }
+      }
+    },
+    {
+      "name": "17 - Poll Bulk Upload Status",
+      "event": [{
+        "listen": "test",
+        "script": { "exec": [
+          "pm.test('Status 200', () => pm.response.to.have.status(200));",
+          "const b = pm.response.json();",
+          "pm.test('Has status field', () => pm.expect(b.data.status).to.be.oneOf(['queued','processing','completed','failed']));",
+          "console.log('Bulk job status:', b.data.status, '| processed:', b.data.processed, '| failed:', b.data.failed);"
+        ]}
+      }],
+      "request": {
+        "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}" }] },
+        "method": "GET",
+        "url": { "raw": "{{baseUrl}}/bulk-upload/{{bulkJobId}}", "host": ["{{baseUrl}}"], "path": ["bulk-upload","{{bulkJobId}}"] }
+      }
+    },
+    {
+      "name": "18 - Request CSV Report",
+      "event": [{
+        "listen": "test",
+        "script": { "exec": [
+          "pm.test('Status 201', () => pm.response.to.have.status(201));",
+          "const b = pm.response.json();",
+          "pm.test('Has jobId', () => pm.expect(b.data.jobId).to.be.a('string'));",
+          "pm.collectionVariables.set('reportJobId', b.data.jobId);"
+        ]}
+      }],
+      "request": {
+        "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}" }] },
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\"format\":\"csv\"}" },
+        "url": { "raw": "{{baseUrl}}/reports/products", "host": ["{{baseUrl}}"], "path": ["reports","products"] }
+      }
+    },
+    {
+      "name": "19 - Poll Report Status",
+      "event": [{
+        "listen": "test",
+        "script": { "exec": [
+          "pm.test('Status 200', () => pm.response.to.have.status(200));",
+          "const b = pm.response.json();",
+          "pm.test('Has status', () => pm.expect(b.data.status).to.be.oneOf(['queued','processing','completed','failed']));",
+          "console.log('Report status:', b.data.status);"
+        ]}
+      }],
+      "request": {
+        "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}" }] },
+        "method": "GET",
+        "url": { "raw": "{{baseUrl}}/reports/{{reportJobId}}", "host": ["{{baseUrl}}"], "path": ["reports","{{reportJobId}}"] }
+      }
+    },
+    {
+      "name": "20 - Delete Product (cleanup)",
+      "event": [{
+        "listen": "test",
+        "script": { "exec": [
+          "pm.test('Status 200', () => pm.response.to.have.status(200));"
+        ]}
+      }],
+      "request": {
+        "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}" }] },
+        "method": "DELETE",
+        "url": { "raw": "{{baseUrl}}/products/{{productId}}", "host": ["{{baseUrl}}"], "path": ["products","{{productId}}"] }
+      }
+    },
+    {
+      "name": "21 - Delete Category (cleanup)",
+      "event": [{
+        "listen": "test",
+        "script": { "exec": [
+          "pm.test('Status 200', () => pm.response.to.have.status(200));"
+        ]}
+      }],
+      "request": {
+        "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}" }] },
+        "method": "DELETE",
+        "url": { "raw": "{{baseUrl}}/categories/{{categoryId}}", "host": ["{{baseUrl}}"], "path": ["categories","{{categoryId}}"] }
+      }
+    },
+    {
+      "name": "22 - Delete User (cleanup)",
+      "event": [{
+        "listen": "test",
+        "script": { "exec": [
+          "pm.test('Status 200', () => pm.response.to.have.status(200));"
+        ]}
+      }],
+      "request": {
+        "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}" }] },
+        "method": "DELETE",
+        "url": { "raw": "{{baseUrl}}/users/{{userId}}", "host": ["{{baseUrl}}"], "path": ["users","{{userId}}"] }
+      }
+    }
+  ]
+}

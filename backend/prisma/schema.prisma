@@ -1,0 +1,86 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String    @id @default(uuid())
+  email           String    @unique
+  password        String
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  createdProducts    Product[]       @relation("ProductCreatedBy")
+  updatedProducts    Product[]       @relation("ProductUpdatedBy")
+  createdCategories  Category[]      @relation("CategoryCreatedBy")
+  updatedCategories  Category[]      @relation("CategoryUpdatedBy")
+  createdBulkUploads BulkUploadJob[] @relation("BulkUploadJobCreatedBy")
+
+  @@map("users")
+}
+
+model Category {
+  id          String    @id @default(uuid())
+  uniqueId    String    @unique @map("unique_id")
+  name        String
+  products    Product[]
+  createdById String?   @map("created_by_id")
+  updatedById String?   @map("updated_by_id")
+  createdBy   User?     @relation("CategoryCreatedBy", fields: [createdById], references: [id])
+  updatedBy   User?     @relation("CategoryUpdatedBy", fields: [updatedById], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("categories")
+}
+
+model Product {
+  id          String   @id @default(uuid())
+  uniqueId    String   @unique @map("unique_id")
+  name        String
+  image       String   @default("")
+  price       Decimal  @db.Decimal(10, 2)
+  categoryId  String   @map("category_id")
+  category    Category @relation(fields: [categoryId], references: [id])
+  createdById String?  @map("created_by_id")
+  updatedById String?  @map("updated_by_id")
+  createdBy   User?    @relation("ProductCreatedBy", fields: [createdById], references: [id])
+  updatedBy   User?    @relation("ProductUpdatedBy", fields: [updatedById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([categoryId])
+  @@index([name])
+  @@map("products")
+}
+
+model BulkUploadJob {
+  id          String   @id @default(uuid())
+  status      String   @default("queued")
+  filePath    String   @map("file_path")
+  total       Int      @default(0)
+  processed   Int      @default(0)
+  failed      Int      @default(0)
+  errors      Json?
+  createdById String?  @map("created_by_id")
+  createdBy   User?    @relation("BulkUploadJobCreatedBy", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("bulk_upload_jobs")
+}
+
+model ReportJob {
+  id        String   @id @default(uuid())
+  status    String   @default("queued")
+  filePath  String?  @map("file_path")
+  format    String   @default("csv")
+  filters   Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("report_jobs")
+}

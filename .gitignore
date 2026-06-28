@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.env
+*.log
+backend/uploads/images/*
+backend/uploads/bulk/*
+backend/generated-reports/*
+!backend/uploads/images/.gitkeep
+!backend/uploads/bulk/.gitkeep
+!backend/generated-reports/.gitkeep
