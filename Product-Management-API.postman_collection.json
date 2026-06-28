@@ -1,0 +1,542 @@
+{
+  "info": {
+    "_postman_id": "pm-product-management-api",
+    "name": "Product Management API",
+    "description": "Full API collection for the Product Management platform (NestJS 11 + PostgreSQL + Redis).\n\n## Setup\n1. Start the backend: `npm run start:dev` inside `backend/`\n2. Run **Auth → Login** first — the token is saved automatically as `{{token}}`\n3. All other requests use `{{token}}` via Bearer Auth\n\n## Variables\n- `baseUrl` — API base (default: http://localhost:3000/api)\n- `token` — set automatically after Login\n- `categoryId` — set automatically after Create Category\n- `productId` — set automatically after Create Product\n- `userId` — set automatically after Create User\n- `bulkJobId` — set automatically after Bulk Upload\n- `reportJobId` — set automatically after Request Report",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000/api", "type": "string" },
+    { "key": "token",      "value": "", "type": "string" },
+    { "key": "userId",     "value": "", "type": "string" },
+    { "key": "categoryId", "value": "", "type": "string" },
+    { "key": "productId",  "value": "", "type": "string" },
+    { "key": "bulkJobId",  "value": "", "type": "string" },
+    { "key": "reportJobId","value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.data && res.data.accessToken) {",
+                  "  pm.collectionVariables.set('token', res.data.accessToken);",
+                  "  console.log('Token saved:', res.data.accessToken.substring(0, 30) + '...');",
+                  "  pm.test('Login successful', () => pm.response.to.have.status(201));",
+                  "} else {",
+                  "  pm.test('Login failed - check credentials', () => false);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"admin123\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] },
+            "description": "Public endpoint — no token required. Saves `accessToken` to `{{token}}` automatically."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "Create User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.data && res.data.id) {",
+                  "  pm.collectionVariables.set('userId', res.data.id);",
+                  "  pm.test('User created', () => pm.response.to.have.status(201));",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"manager@example.com\",\n  \"password\": \"manager123\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/users", "host": ["{{baseUrl}}"], "path": ["users"] },
+            "description": "Create a new user. Password must be at least 6 characters."
+          }
+        },
+        {
+          "name": "Get All Users",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/users", "host": ["{{baseUrl}}"], "path": ["users"] }
+          }
+        },
+        {
+          "name": "Get User by ID",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/users/{{userId}}", "host": ["{{baseUrl}}"], "path": ["users", "{{userId}}"] },
+            "description": "Uses `{{userId}}` set automatically by Create User."
+          }
+        },
+        {
+          "name": "Update User",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"manager-updated@example.com\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/users/{{userId}}", "host": ["{{baseUrl}}"], "path": ["users", "{{userId}}"] },
+            "description": "All fields optional (PartialType). Only send what you want to change."
+          }
+        },
+        {
+          "name": "Delete User",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+            "method": "DELETE",
+            "url": { "raw": "{{baseUrl}}/users/{{userId}}", "host": ["{{baseUrl}}"], "path": ["users", "{{userId}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Categories",
+      "item": [
+        {
+          "name": "Create Category",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.data && res.data.id) {",
+                  "  pm.collectionVariables.set('categoryId', res.data.id);",
+                  "  pm.test('Category created', () => pm.response.to.have.status(201));",
+                  "  console.log('categoryId saved:', res.data.id);",
+                  "  console.log('uniqueId (use in CSV):', res.data.uniqueId);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Electronics\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/categories", "host": ["{{baseUrl}}"], "path": ["categories"] },
+            "description": "Saves `id` (UUID) to `{{categoryId}}`. Check Console for the `uniqueId` (CAT-XXXXXX) — needed for bulk upload CSV."
+          }
+        },
+        {
+          "name": "Get All Categories",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/categories", "host": ["{{baseUrl}}"], "path": ["categories"] }
+          }
+        },
+        {
+          "name": "Get Category by ID",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/categories/{{categoryId}}", "host": ["{{baseUrl}}"], "path": ["categories", "{{categoryId}}"] }
+          }
+        },
+        {
+          "name": "Update Category",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Consumer Electronics\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/categories/{{categoryId}}", "host": ["{{baseUrl}}"], "path": ["categories", "{{categoryId}}"] }
+          }
+        },
+        {
+          "name": "Delete Category",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+            "method": "DELETE",
+            "url": { "raw": "{{baseUrl}}/categories/{{categoryId}}", "host": ["{{baseUrl}}"], "path": ["categories", "{{categoryId}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Products",
+      "item": [
+        {
+          "name": "Create Product (with image)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.data && res.data.id) {",
+                  "  pm.collectionVariables.set('productId', res.data.id);",
+                  "  pm.test('Product created', () => pm.response.to.have.status(201));",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+            "method": "POST",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "name",       "value": "Laptop Pro 15",  "type": "text" },
+                { "key": "price",      "value": "1299.99",         "type": "text" },
+                { "key": "categoryId", "value": "{{categoryId}}", "type": "text" },
+                { "key": "image",      "type": "file",  "src": "", "description": "Optional — select a JPG/PNG from your machine" }
+              ]
+            },
+            "url": { "raw": "{{baseUrl}}/products", "host": ["{{baseUrl}}"], "path": ["products"] },
+            "description": "multipart/form-data. `image` is optional — leave the file field empty to skip. Uses `{{categoryId}}` (UUID) from Create Category."
+          }
+        },
+        {
+          "name": "Create Product (no image)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.data && res.data.id) {",
+                  "  pm.collectionVariables.set('productId', res.data.id);",
+                  "  pm.test('Product created', () => pm.response.to.have.status(201));",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+            "method": "POST",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "name",       "value": "Wireless Mouse", "type": "text" },
+                { "key": "price",      "value": "49.99",           "type": "text" },
+                { "key": "categoryId", "value": "{{categoryId}}", "type": "text" }
+              ]
+            },
+            "url": { "raw": "{{baseUrl}}/products", "host": ["{{baseUrl}}"], "path": ["products"] }
+          }
+        },
+        {
+          "name": "List Products (default)",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/products?page=1&limit=20&sortBy=createdAt&sortOrder=desc",
+              "host": ["{{baseUrl}}"],
+              "path": ["products"],
+              "query": [
+                { "key": "page",      "value": "1" },
+                { "key": "limit",     "value": "20" },
+                { "key": "sortBy",    "value": "createdAt", "description": "price | name | createdAt" },
+                { "key": "sortOrder", "value": "desc",      "description": "asc | desc" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "List Products (search)",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/products?search=laptop&page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["products"],
+              "query": [
+                { "key": "search",    "value": "laptop" },
+                { "key": "page",      "value": "1" },
+                { "key": "limit",     "value": "10" }
+              ]
+            },
+            "description": "ILIKE search on product name."
+          }
+        },
+        {
+          "name": "List Products (filter by category)",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/products?categoryId={{categoryId}}&sortBy=price&sortOrder=asc",
+              "host": ["{{baseUrl}}"],
+              "path": ["products"],
+              "query": [
+                { "key": "categoryId", "value": "{{categoryId}}" },
+                { "key": "sortBy",     "value": "price" },
+                { "key": "sortOrder",  "value": "asc" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Product by ID",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/products/{{productId}}", "host": ["{{baseUrl}}"], "path": ["products", "{{productId}}"] }
+          }
+        },
+        {
+          "name": "Update Product",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+            "method": "PUT",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "name",  "value": "Laptop Pro 15 (Updated)", "type": "text" },
+                { "key": "price", "value": "1199.99",                  "type": "text" },
+                { "key": "image", "type": "file", "src": "",           "description": "Optional — leave empty to keep existing image" }
+              ]
+            },
+            "url": { "raw": "{{baseUrl}}/products/{{productId}}", "host": ["{{baseUrl}}"], "path": ["products", "{{productId}}"] },
+            "description": "All fields optional. Send only what changes."
+          }
+        },
+        {
+          "name": "Delete Product",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+            "method": "DELETE",
+            "url": { "raw": "{{baseUrl}}/products/{{productId}}", "host": ["{{baseUrl}}"], "path": ["products", "{{productId}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Bulk Upload",
+      "item": [
+        {
+          "name": "Upload CSV or XLSX",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.data && res.data.jobId) {",
+                  "  pm.collectionVariables.set('bulkJobId', res.data.jobId);",
+                  "  pm.test('Upload accepted', () => pm.response.to.have.status(201));",
+                  "  console.log('bulkJobId saved:', res.data.jobId);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+            "method": "POST",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "",
+                  "description": "Select a .csv or .xlsx file. Max 50 MB.\n\nCSV format:\nname,price,category_id,image_url\nLaptop,999.99,CAT-PX4PY4,\nMouse,29.99,CAT-PX4PY4,"
+                }
+              ]
+            },
+            "url": { "raw": "{{baseUrl}}/bulk-upload/products", "host": ["{{baseUrl}}"], "path": ["bulk-upload", "products"] },
+            "description": "Upload a CSV or XLSX file.\n\n**Required CSV columns:** `name`, `price`, `category_id`\n**Optional:** `image_url`\n\n`category_id` must be the `uniqueId` of an existing category (e.g. `CAT-PX4PY4`), NOT the UUID.\n\nReturns `{ jobId }` immediately. Poll the next request for status."
+          }
+        },
+        {
+          "name": "Get Upload Job Status",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.data) {",
+                  "  const d = res.data;",
+                  "  console.log(`Status: ${d.status} | Total: ${d.total} | Processed: ${d.processed} | Failed: ${d.failed}`);",
+                  "  if (d.errors && d.errors.length) {",
+                  "    console.log('First 3 errors:', JSON.stringify(d.errors.slice(0, 3)));",
+                  "  }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/bulk-upload/{{bulkJobId}}", "host": ["{{baseUrl}}"], "path": ["bulk-upload", "{{bulkJobId}}"] },
+            "description": "Poll every 2s until `status` is `completed` or `failed`.\n\nResponse includes `processed`, `failed`, `total`, and `errors[]` with per-row reasons."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reports",
+      "item": [
+        {
+          "name": "Request Report (CSV - all products)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.data && res.data.jobId) {",
+                  "  pm.collectionVariables.set('reportJobId', res.data.jobId);",
+                  "  pm.test('Report queued', () => pm.response.to.have.status(201));",
+                  "  console.log('reportJobId saved:', res.data.jobId);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"format\": \"csv\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/reports/products", "host": ["{{baseUrl}}"], "path": ["reports", "products"] },
+            "description": "Queues a report generation job. Returns `{ jobId }` immediately.\n\nPoll Get Report Status until `status === completed`, then use Download Report."
+          }
+        },
+        {
+          "name": "Request Report (XLSX - filtered by category)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.data && res.data.jobId) {",
+                  "  pm.collectionVariables.set('reportJobId', res.data.jobId);",
+                  "  pm.test('Report queued', () => pm.response.to.have.status(201));",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"format\": \"xlsx\",\n  \"categoryId\": \"{{categoryId}}\",\n  \"search\": \"\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/reports/products", "host": ["{{baseUrl}}"], "path": ["reports", "products"] },
+            "description": "`categoryId` and `search` are optional filters. Remove them to export all products."
+          }
+        },
+        {
+          "name": "Get Report Status",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.data) {",
+                  "  console.log('Report status:', res.data.status);",
+                  "  if (res.data.status === 'completed') {",
+                  "    console.log('Ready to download. Run \"Download Report\" request.');",
+                  "  }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/reports/{{reportJobId}}", "host": ["{{baseUrl}}"], "path": ["reports", "{{reportJobId}}"] },
+            "description": "Poll until `status === completed`. Then run Download Report."
+          }
+        },
+        {
+          "name": "Download Report",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/reports/{{reportJobId}}/download", "host": ["{{baseUrl}}"], "path": ["reports", "{{reportJobId}}", "download"] },
+            "description": "Returns the CSV or XLSX file as a binary download.\n\nIn Postman: click **Send and Download** (arrow next to Send) to save the file to disk.\n\nRequires a valid JWT — endpoint is protected. Run Login first."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Static Assets",
+      "item": [
+        {
+          "name": "Get Product Image",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "http://localhost:3000/static/images/FILENAME.jpg",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["static", "images", "FILENAME.jpg"]
+            },
+            "description": "Replace `FILENAME.jpg` with the filename from a product's `image` field.\n\nNo auth required — served by NestJS useStaticAssets().\n\nFull URL format: http://localhost:3000/static/images/<uuid>.<ext>"
+          }
+        }
+      ]
+    }
+  ]
+}
